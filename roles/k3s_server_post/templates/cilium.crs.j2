@@ -1,38 +1,79 @@
 apiVersion: "cilium.io/v2alpha1"
-kind: CiliumBGPPeeringPolicy
+kind: CiliumBGPClusterConfig
 metadata:
- name: 01-bgp-peering-policy
-spec: # CiliumBGPPeeringPolicySpec
- virtualRouters: # []CiliumBGPVirtualRouter
- - localASN: {{ cilium_bgp_my_asn }}
-   exportPodCIDR: {{ cilium_exportPodCIDR | default('true') }}
-   neighbors: # []CiliumBGPNeighbor
-{% if _cilium_bgp_neighbors | length > 0 %}
-{% for item in _cilium_bgp_neighbors %}
-    - peerAddress: '{{ item.peer_address + "/32"}}'
-      peerASN: {{ item.peer_asn }}
-      eBGPMultihopTTL: 10
-      connectRetryTimeSeconds: 120
-      holdTimeSeconds: 90
-      keepAliveTimeSeconds: 30
-      gracefulRestart:
-        enabled: true
-        restartTimeSeconds: 120
-{% endfor %}
-{% else %}
-    - peerAddress: '{{ cilium_bgp_peer_address + "/32"}}'
-      peerASN: {{ cilium_bgp_peer_asn }}
-      eBGPMultihopTTL: 10
-      connectRetryTimeSeconds: 120
-      holdTimeSeconds: 90
-      keepAliveTimeSeconds: 30
-      gracefulRestart:
-        enabled: true
-        restartTimeSeconds: 120
+ name: cilium-bgp
+spec:
+ bgpInstances:
+ - name: "instance-{{ cilium_bgp_my_asn }}"
+   localASN: {{ cilium_bgp_my_asn }}
+   peers:
+   {% if cilium_bgp_neighbors | length > 0 -%}
+   {% for item in cilium_bgp_neighbors -%}
+   - name: "peer-{{ item.peer_address }}"
+     peerASN: {{ item.peer_asn }}
+     peerAddress: {{ item.peer_address }}
+     peerConfigRef:
+       name: cilium-peer
+   {% endfor %}
+   {% else -%}
+   - name: "peer-{{ cilium_bgp_peer_address }}"
+     peerASN: {{ cilium_bgp_peer_asn }}
+     peerAddress: {{ cilium_bgp_peer_address }}
+     peerConfigRef:
+       name: cilium-peer
+   {% endif %}
+
+---
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumBGPPeerConfig
+metadata:
+ name: cilium-peer
+spec:
+ timers:
+   holdTimeSeconds: 90
+   keepAliveTimeSeconds: 30
+ ebgpMultihop: 10
+ gracefulRestart: 
+   enabled: true
+   restartTimeSeconds: 15
+ families:
+  - afi: ipv4
+    safi: unicast
+    advertisements:
+      matchLabels:
+        advertise: "bgp"
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPAdvertisement
+metadata:
+  name: service-bgp-advertisements
+  labels:
+    advertise: bgp
+spec:
+  advertisements:
+    - advertisementType: "Service"
+      service:
+        addresses:
+          - ExternalIP
+          - LoadBalancerIP
+      selector:
+        matchExpressions:
+          - {key: somekey, operator: NotIn, values: ['never-used-value']}    
+{% if cilium_exportPodCIDR %}
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPAdvertisement
+metadata:
+  name: pod-ip-pool-advert
+  labels:
+    advertise: bgp
+spec:
+  advertisements:
+    - advertisementType: "CiliumPodIPPool"
+      selector:
+        matchExpressions:
+          - {key: somekey, operator: NotIn, values: ['never-used-value']}
 {% endif %}
-   serviceSelector:
-      matchExpressions:
-         - {key: somekey, operator: NotIn, values: ['never-used-value']}
 ---
 apiVersion: "cilium.io/v2alpha1"
 kind: CiliumLoadBalancerIPPool
