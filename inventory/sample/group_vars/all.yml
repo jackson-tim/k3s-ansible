@@ -1,5 +1,5 @@
 ---
-k3s_version: v1.30.2+k3s2
+k3s_version: v1.31.2+k3s1
 # this is the user that has ssh access to these machines
 ansible_user: ansibleuser
 systemd_dir: /etc/systemd/system
@@ -18,8 +18,8 @@ calico_tag: v3.28.0 # calico version tag
 # uncomment cilium_iface to use cilium cni instead of flannel or calico
 # ensure v4.19.57, v5.1.16, v5.2.0 or more recent kernel
 # cilium_iface: "eth0"
-cilium_mode: native # native when nodes on same subnet or using bgp, else set routed
-cilium_tag: v1.16.0 # cilium version tag
+cilium_mode: native # native when nodes on same subnet or using bgp, else set routed or tunnel
+cilium_tag: 1.17.0-pre.3 # cilium version tag
 cilium_hubble: true # enable hubble observability relay and ui
 
 # if using calico or cilium, you may specify the cluster pod cidr pool
@@ -27,6 +27,9 @@ cluster_cidr: 10.52.0.0/16
 
 # enable cilium bgp control plane for lb services and pod cidrs. disables metallb.
 cilium_bgp: false
+
+# enable cilium ingress
+cilium_ingress: false
 
 # bgp parameters for cilium cni. only active when cilium_iface is defined and cilium_bgp is true.
 cilium_bgp_my_asn: "64513"
