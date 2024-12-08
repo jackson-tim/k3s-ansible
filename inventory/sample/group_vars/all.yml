@@ -36,6 +36,11 @@ cilium_bgp_my_asn: "64513"
 cilium_bgp_peer_asn: "64512"
 cilium_bgp_peer_address: 192.168.30.1
 cilium_bgp_lb_cidr: 192.168.31.0/24 # cidr for cilium loadbalancer ipam
+# enable cilium kube_proxy replacement
+kube_proxy_replacement: false
+# cilium bpf lb mode/algorithm
+bpf_lb_algorithm: maglev
+bpf_lb_mode: snat
 
 # enable kube-vip ARP broadcasts
 kube_vip_arp: true
