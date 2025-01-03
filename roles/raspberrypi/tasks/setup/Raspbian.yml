@@ -32,6 +32,11 @@
     name: iptables
     state: present
 
+- name: Install open-iscsi
+  ansible.builtin.apt:
+    name: open-iscsi
+    state: present
+
 - name: Flush iptables before changing to iptables-legacy
   ansible.builtin.iptables:
     flush: true
